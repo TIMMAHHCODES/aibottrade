@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Solana Bot</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Shown whenever the bot is not in dry run. Impossible to miss. -->
+<div id="liveBanner" class="live-banner hidden">
+  <strong>LIVE TRADING</strong>
+  <span>Real funds. This bot will spend real money on the next signal.</span>
+</div>
+
+<header>
+  <div class="brand">
+    <h1>Solana Bot</h1>
+    <span id="pairLabel" class="muted">&mdash;</span>
+  </div>
+  <div class="header-right">
+    <button id="modeBtn" class="btn" type="button">&hellip;</button>
+    <span id="runBadge" class="badge">&hellip;</span>
+    <button id="killBtn" class="btn btn-kill" type="button">&hellip;</button>
+  </div>
+</header>
+
+<div id="alerts" class="alerts"></div>
+
+<!-- ── headline numbers ─────────────────────────────────────────────── -->
+<section class="cards">
+  <article class="card">
+    <div class="card-label">Price <span id="priceAsOf" class="muted"></span></div>
+    <div class="card-value" id="price">&mdash;</div>
+    <div class="card-sub" id="pricePair"></div>
+  </article>
+
+  <article class="card">
+    <div class="card-label">Signal</div>
+    <div class="card-value signal" id="signal">&mdash;</div>
+    <div class="card-sub" id="signalSub">waiting for first cycle</div>
+  </article>
+
+  <article class="card">
+    <div class="card-label">RSI</div>
+    <div class="card-value" id="rsi">&mdash;</div>
+    <div class="meter"><div class="meter-fill" id="rsiFill"></div></div>
+  </article>
+
+  <article class="card">
+    <div class="card-label">EMA trend</div>
+    <div class="card-value" id="emaTrend">&mdash;</div>
+    <div class="card-sub" id="emaSub">&mdash;</div>
+  </article>
+
+  <article class="card">
+    <div class="card-label">Unrealised PnL</div>
+    <div class="card-value" id="unreal">&mdash;</div>
+    <div class="card-sub" id="unrealSub">open positions</div>
+  </article>
+
+  <article class="card">
+    <div class="card-label">Realised PnL</div>
+    <div class="card-value" id="real">&mdash;</div>
+    <div class="card-sub">from all closed trades</div>
+  </article>
+</section>
+
+<!-- ── risk / pacing ────────────────────────────────────────────────── -->
+<section class="strip">
+  <div class="strip-item">
+    <span class="strip-label">Daily spend</span>
+    <span class="strip-value" id="dailySpend">&mdash;</span>
+    <div class="meter thin"><div class="meter-fill" id="dailyFill"></div></div>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Open lots</span>
+    <span class="strip-value" id="openLots">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Per trade</span>
+    <span class="strip-value" id="tradeSize">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">TP / SL</span>
+    <span class="strip-value" id="tpsl">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Next candle</span>
+    <span class="strip-value" id="nextCandle">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Last cycle</span>
+    <span class="strip-value" id="lastCycle">&mdash;</span>
+  </div>
+</section>
+
+<!-- ── closed-trade statistics ──────────────────────────────────────── -->
+<section class="strip">
+  <div class="strip-item">
+    <span class="strip-label">Closed trades</span>
+    <span class="strip-value" id="stTrades">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Win rate</span>
+    <span class="strip-value" id="stWinRate">&mdash;</span>
+    <div class="meter thin"><div class="meter-fill" id="stWinFill"></div></div>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Wins / losses</span>
+    <span class="strip-value" id="stWL">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Average PnL</span>
+    <span class="strip-value" id="stAvg">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Best</span>
+    <span class="strip-value" id="stBest">&mdash;</span>
+  </div>
+  <div class="strip-item">
+    <span class="strip-label">Worst</span>
+    <span class="strip-value" id="stWorst">&mdash;</span>
+  </div>
+</section>
+
+<!-- ── chart ─────────────────────────────────────────────────────────── -->
+<section class="panel">
+  <div class="panel-head">
+    <h2 id="chartTitle">Chart</h2>
+    <div class="head-controls">
+      <label class="muted"><input type="checkbox" id="chartEma" checked> EMA</label>
+      <label class="muted"><input type="checkbox" id="chartTrades" checked> my trades</label>
+      <button id="chartRefresh" class="btn" type="button">Refresh</button>
+    </div>
+  </div>
+  <div id="chartWrap" class="chart-wrap">
+    <div id="chart" class="chart"></div>
+    <div id="chartMsg" class="chart-msg">Loading&hellip;</div>
+  </div>
+</section>
+
+<!-- ── positions ────────────────────────────────────────────────────── -->
+<section class="panel">
+  <div class="panel-head">
+    <h2>Open positions</h2>
+    <span class="muted" id="posCount"></span>
+  </div>
+  <div id="positions" class="empty">No open positions.</div>
+</section>
+
+<!-- ── tabs ─────────────────────────────────────────────────────────── -->
+<nav class="tabs">
+  <button class="tab active" data-tab="settings" type="button">Settings</button>
+  <button class="tab" data-tab="trades" type="button">Trades</button>
+  <button class="tab" data-tab="log" type="button">Log</button>
+</nav>
+
+<section id="tab-settings" class="panel tab-panel">
+  <div class="panel-head">
+    <h2>Settings</h2>
+    <div>
+      <span id="settingsNote" class="muted">Saved to .env and applied immediately.</span>
+      <button id="saveBtn" class="btn btn-primary" type="button">Save changes</button>
+    </div>
+  </div>
+
+  <div class="pair-lock">
+    <h3>Pair <span class="lock-tag">locked</span></h3>
+    <p class="muted" id="pairHelp"></p>
+    <div id="pairFields" class="field-grid"></div>
+  </div>
+
+  <div id="settingsGroups"></div>
+</section>
+
+<section id="tab-trades" class="panel tab-panel hidden">
+  <div class="panel-head">
+    <h2>Trade history</h2>
+    <span class="muted">newest first</span>
+  </div>
+  <div id="trades" class="empty">Loading&hellip;</div>
+</section>
+
+<section id="tab-log" class="panel tab-panel hidden">
+  <div class="panel-head">
+    <h2>Log</h2>
+    <div class="head-controls">
+      <label class="muted"><input type="checkbox" id="logAuto" checked> auto-refresh</label>
+      <button id="logRefresh" class="btn" type="button">Refresh</button>
+    </div>
+  </div>
+  <pre id="logView" class="logview">Loading&hellip;</pre>
+</section>
+
+<!-- ── trending ──────────────────────────────────────────────────────── -->
+<section class="panel">
+  <div class="panel-head">
+    <h2>Trending on Solana</h2>
+    <span class="muted">discovery only &mdash; nothing here can place a trade</span>
+  </div>
+  <div id="trending" class="empty">Loading&hellip;</div>
+</section>
+
+<footer class="muted">
+  Bound to loopback only. Local network access is not enabled by default.
+</footer>
+
+<!-- ── confirmation modal ───────────────────────────────────────────── -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalBody"></p>
+    <div id="modalPhraseWrap" class="hidden">
+      <label for="modalPhrase">Type <code id="modalPhraseText"></code> to confirm</label>
+      <input id="modalPhrase" type="text" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="modal-actions">
+      <button id="modalCancel" class="btn" type="button">Cancel</button>
+      <button id="modalOk" class="btn btn-danger" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TradingView's open-source charting library (MIT). Loaded from a CDN;
+     app.js checks for the global before using it, so a blocked CDN degrades
+     to "chart unavailable" rather than a broken dashboard. -->
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
